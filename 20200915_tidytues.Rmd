@@ -15,13 +15,13 @@ library(stats)
 library(Hmisc)
 library(corrplot)
 library(tidyr)
-library(statebins) # maybe make plot with this
-library(tidyverse) # data cleaning
-library(ggplot2)   # plot
-library(ggthemes)  # theme_map
-library(viridis)   # color palette
-library(gganimate) # animate the plot
-library(transformr)# needed for animation of polygons
+library(statebins) 
+library(tidyverse) 
+library(ggplot2)   
+library(ggthemes)  
+library(viridis)   
+library(gganimate) 
+library(transformr)
 
 ## Get the Data
 tuesdata <- tidytuesdayR::tt_load('2020-09-15')
