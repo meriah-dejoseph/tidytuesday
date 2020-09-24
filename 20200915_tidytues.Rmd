@@ -32,31 +32,105 @@ kids <- tuesdata$kids
 
 ```
 
-## Data exploration and reformatting
-```{r}
+## Data exploration 
+```{r, include=TRUE, echo=TRUE, warning=FALSE}
 ## Descriptives
+summary(kids)
 
-## Make data long to wide
+kids %>% 
+  group_by(state) %>% 
+  summary(inf_adj_perchild)
 
+#filtering on the states I've lived in for fun, and on types of funding 
+kids2 <- kids %>% 
+  filter(state=="California" |
+         state=="New York" |
+         state=="Minnesota") %>% 
+  filter (variable == "PK12ed" |
+          variable == "highered" |
+          variable == "edsubs" |
+          variable == "pell" |
+          variable == "TANFbasic" |
+          variable == "SNAP" |
+          variable == "unemp")
+  
+#Plot funding growth by state and type of funding
+ggplot(data=kids2, aes(y= inf_adj, x=year, color=variable))+
+  geom_line ()+ 
+  geom_point() + 
+  theme_bw () +
+  facet_wrap(~state) 
+
+#Another way with all states
+kids3 <- kids %>% 
+    filter (variable == "PK12ed" |
+          variable == "highered" |
+          variable == "edsubs" |
+          variable == "pell" |
+          variable == "TANFbasic" |
+          variable == "SNAP" |
+          variable == "unemp") 
+
+ggplot(data=kids3, aes(y= inf_adj, x=year, color=variable))+
+  geom_line ()+ 
+  geom_point() + 
+  theme_bw () +
+  facet_wrap(~state) 
 
 ```
 
-## [question] using a diverging bar chart
-```{r}
+## Exploring how much states spend on kids education using a diverging bar chart
+```{r, include=true, echo=true, warning=false}
 ## Diverging bar charts
 # https://nhsrcommunity.com/blog/diverging-bar-charts-plotting-variance-with-ggplot2/
 
+#set theme
+theme_set(theme_classic())
 
+#filter to look at pk-12 education only
+kids4 <- kids %>% 
+    filter (variable == "PK12ed" )
+
+#make zscore
+kids4 <- kids4 %>% 
+  mutate(zscore = (inf_adj_perchild - mean(inf_adj_perchild, na.rm=TRUE))/sd(inf_adj_perchild, na.rm=TRUE))
+
+#get cutoff for above and below the mean
+kids4$zscore_type <- ifelse(kids4$zscore < 0, "below", "above")
+
+#make sure state is a factor
+as.factor(kids4$state)
+
+#create base plot
+ggplot(kids4, aes(x=state, y=zscore, label=zscore)) +
+  geom_bar(stat='identity', aes(fill=zscore_type), width=.5) + #variable as type of funding
+  scale_fill_manual(name="Dollars spent",
+                    labels = c("Above Average", "Below Average"),
+                    values = c("above"="#00ba38", "below"="#0b8fd3")) +
+  labs(subtitle="Z score (normalised) dollars per child in $1000s spent'",
+       title= "Which states care more about primary education?") +
+  coord_flip()
 
 ```
 
-## [question] using animated gif
-```{r}
+## Animated gif on dollars spent per year per state
+```{r, include=TRUE, echo=true, warning=false}
 ##Animated gif
 # https://github.com/winterstat/tidytuesday/blob/master/R/tt2020_wk38.R
 
+#install.packages("tidytuesdayR")
+#install.packages("statebins")
+
+library(statebins) # maybe make plot with this
+library(tidyverse) # data cleaning
+library(ggthemes)  # theme_map
+library(viridis)   # color palette
+library(gganimate) # animate the plot
+library(transformr)# needed for animation of polygons
+
 ## Extract spending on elementary and secondary education
-kids_PK12ed <- kids %>% filter(variable == "PK12ed")
+kids_PK12ed <- kids %>% 
+  filter(variable == "PK12ed")
 
 ## Create basic plot
 p <- ggplot(data = kids_PK12ed, aes(state = state, fill = inf_adj_perchild, group = year)) +
@@ -95,5 +169,4 @@ animate(p_anim, start_pause = 5, end_pause = 30, fps = 5,
 anim_save("TT2020_wk38.gif")
 ```
 
-## 
 
