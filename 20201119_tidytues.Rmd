@@ -1,0 +1,203 @@
+---
+title: "20201119_tidytues"
+author: "Meriah DeJoseph"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Can only give myself 30 min to spend on this, so here we go! 
+```{r}
+#Load libraries and data
+library(tidyverse)
+library(stringr)
+library(ggplot2)
+
+beer <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-10-20/beer_awards.csv")
+
+```
+
+## Cleaning
+```{r}
+
+#Using assignment laid out from Trevor. 
+
+#There are a few entry errors in the state column. Identify and fix them. After cleaning, there are 50 unique states, but that includes DC. Which state has no beers at all?
+
+unique(beer$state) %>% 
+sort()
+#can see lowercase letters
+
+#make a new df with corrected state and alter medals for future easier plotting exploration
+df <- 
+  beer %>% 
+  mutate(
+    state = str_to_upper(state))
+
+#check that there are 50 states
+table(df$state)
+un <- unique(df$state)
+summary(un)
+
+```
+
+
+## Exploration
+```{r}
+
+n_beers <- beer %>%
+  group_by(category) %>%
+  summarize(n = n())
+
+beer_table_orig <- n_beers %>%
+  mutate(
+    category = tolower(category),
+    type_multiple = grepl("( or |/|&|amp)", category)
+  ) %>%
+  filter(!type_multiple) %>%
+  mutate(
+
+    # Experimental with no other type
+    type_ipa    = grepl("india pale ale", category),
+    type_exper  = grepl("experimental", category) & !type_ipa,
+
+    # Simple matches
+    type_coffee = grepl("coffee", category),
+    type_barley = grepl("barley", category),
+    type_stout  = grepl("stout", category) | grepl("porter", category),
+    type_saison = grepl("saison", category),
+    type_bitter = grepl("bitter", category),
+    type_hefe   = grepl("hefeweizen", category),
+    type_lager  = grepl("lager", category) & !type_exper,
+    type_rye    = grepl("rye", category),
+    type_choc   = grepl("chocolate", category),
+    type_smoke  = grepl("smoke", category),
+    type_honey  = grepl("honey", category),
+    type_strong = grepl("strong beer", category),
+    type_wit    = grepl("witbier", category),
+    type_schwar = grepl("schwarz", category),
+    type_keller = grepl("keller", category),
+    type_wheat  = grepl("wheat", category),
+    type_chili  = grepl("chili", category),
+    type_tripe  = grepl("tripel", category),
+
+
+    # Regexes
+    type_gf     = grepl("gluten.free", category),
+    type_helles = grepl("hell=?es", category),
+    type_kolsch = grepl("k.*sch", category),
+    type_proam  = grepl("pro.?am", category),
+    type_NA     = grepl("non", category),
+
+    # Multiple
+    type_altb   = grepl("altbier", category) | category %in% c("alt", "alts"),
+    type_sour   = grepl("sour", category) | grepl("brett", category),
+    type_pils   = grepl("pilsener", category) | grepl("pilsner", category),
+    type_spice  = grepl("herb", category) | grepl("spice", category),
+    type_ocktob = grepl("oktober", category) | grepl("bock", category) |
+                    grepl("\\bm.*zen\\b", category),
+    type_fruit  = (grepl("fruit,? ", category) | category == "raspberry beers") & !type_wheat,
+    type_field  = grepl("field", category) | grepl("pumpkin", category) & !type_spice,
+
+    # Ales; check IPA > Pale Ale > Ale
+    type_red    = grepl("red ale", category) | grepl("dunkel", category) |
+                    grepl("amber", category) & !type_lager,
+    type_brown  = grepl("brown ale", category),
+    type_pale   = grepl("pale ale", category) & !type_ipa,
+    type_cream  = grepl("cream ale", category),
+    type_ale    = grepl("ale", category) &
+                    !type_ipa & !type_pale & !type_red & !type_brown &
+                    !type_sour & !type_stout & !type_bitter &
+                    !type_wheat & !type_barley & !type_cream,
+
+    type_spec   = grepl("specialty beer", category) | category == "specialty",
+
+    # Non-IPA session
+    type_sess   = grepl("session", category) & !type_ipa,
+    type_aged   = grepl("aged beer$", category),
+    type_malt   = grepl("malt", category),
+    type_wine   = grepl("wine", category) & !type_barley
+
+  ) %>%
+  add_column(
+    n_categories = select(., -category, -n, -type_multiple) %>%
+                    rowSums(),
+    .after = "category"
+  )
+
+# problem_beers <- beer_table %>%
+#  filter(n_categories != 1) %>%
+#  arrange(desc(n))
+
+beer_table <- beer_table_orig %>%
+  filter(
+    # Exclude malts, wines
+    !type_malt, !type_wine,
+    n_categories == 1
+  ) %>%
+  arrange(desc(n), category)
+
+beer_table_long <- beer_table %>%
+  select(-starts_with("n")) %>%
+  pivot_longer(-category, names_to = "major_category") %>%
+  filter(value) %>%
+  select(-value) %>%
+  mutate(
+    major_category = gsub("type_", "", major_category)
+  )
+
+beer_tbl <- beer_table %>%
+  add_column(
+    major_category = beer_table_long$major_category,
+    .after = "category"
+  ) %>%
+  select(-starts_with("n"), -type_multiple)
+
+beer_major <- beer %>%
+  mutate(
+    category = tolower(category)
+  ) %>%
+  right_join(beer_tbl)
+
+#Now beer_major contains each beer for which identified a category (3753/4970), with a major category column and dummy variables for each type.
+
+```
+
+## Pick a beer
+```{r}
+# Identify how many unique beer types there are.
+
+X <- (unique(beer_major$major_category))
+X <- sum(!!str_count(X))
+
+#Code to pick randomly
+unique(beer_major$major_category)[runif(1, 1, X)]
+
+#But I want to pick hefe 
+
+```
+
+## Visualize
+```{r}
+
+#Visualize the number of beers produced in each state.
+
+#make medal ordered to make more sense in the plot
+beer_major <- beer_major %>% 
+  mutate(
+    medal_sort = case_when(medal == "Gold" ~ "A", 
+                           medal == "Silver" ~ "B", 
+                           medal == "Bronze" ~ "C"))
+
+bar <- ggplot(beer_major, aes(x=state, fill=medal_sort))+
+  geom_bar() +
+  scale_fill_manual(values=c("gold","dark grey","brown" ))+
+  ylab("# of beers produced") +
+  xlab("State")
+bar
+#My home state of CA wins!
+
+```
+
