@@ -55,7 +55,7 @@ kids2 <- kids %>%
           variable == "unemp")
   
 #Plot funding growth by state and type of funding
-ggplot(data=kids2, aes(y= inf_adj, x=year, color=variable))+
+p0 <- ggplot(data=kids2, aes(y= inf_adj, x=year, color=variable))+
   geom_line ()+ 
   geom_point() + 
   theme_bw () +
@@ -71,7 +71,7 @@ kids3 <- kids %>%
           variable == "SNAP" |
           variable == "unemp") 
 
-ggplot(data=kids3, aes(y= inf_adj, x=year, color=variable))+
+p1 <- ggplot(data=kids3, aes(y= inf_adj, x=year, color=variable))+
   geom_line ()+ 
   geom_point() + 
   theme_bw () +
@@ -101,8 +101,8 @@ kids4$zscore_type <- ifelse(kids4$zscore < 0, "below", "above")
 #make sure state is a factor
 as.factor(kids4$state)
 
-#create base plot
-ggplot(kids4, aes(x=state, y=zscore, label=zscore)) +
+
+p2 <-ggplot(kids4, aes(x=state, y=zscore, label=zscore)) +
   geom_bar(stat='identity', aes(fill=zscore_type), width=.5) + #variable as type of funding
   scale_fill_manual(name="Dollars spent",
                     labels = c("Above Average", "Below Average"),
