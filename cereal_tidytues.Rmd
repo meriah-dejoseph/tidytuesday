@@ -1,0 +1,133 @@
+---
+title: "cereal_tidytues"
+author: "Meriah DeJoseph"
+date: "12/10/2020"
+output: html_document
+---
+## Doing assignment for TT group, giving myself 30 min again
+
+##Load libraries and data
+```{r}
+library(tidytuesdayR)
+library(ggplot2)
+library(gridExtra)
+library(dplyr)
+library(tidyverse)
+library(broom)
+library(emmeans)
+library(readr)
+library(readxl)
+
+cereal <- read_excel("data/cereal.xlsx")
+
+```
+
+# 2. Which cereal has the most and least surgar per serving? The most and least calories? The most and least protein? (and any other nutritional info you're interested in)
+```{r}
+
+maxsugar <- cereal %>% 
+    filter(sugars == max(sugars)) %>% # filter to keep row where sugars is maximum
+    select(name) # select column 
+maxsugar
+#1 Golden Crisp
+#2 Smacks 
+
+minsugar <- cereal %>% 
+    filter(sugars == min(sugars, na.rm=T)) %>% 
+    select(name) 
+minsugar
+#saw that quaker is -1 so I'm going to remove these values and rerun
+cereal[cereal == -1] <- NA
+# 1 All-Bran with Extra Fiber
+# 2 Cream of Wheat (Quick)   
+# 3 Puffed Rice              
+# 4 Puffed Wheat             
+# 5 Shredded Wheat           
+# 6 Shredded Wheat 'n'Bran   
+# 7 Shredded Wheat spoon size
+
+maxcal <- cereal %>% 
+    filter(calories == max(calories)) %>% 
+    select(name) 
+maxcal
+#1 Mueslix Crispy Blend
+
+mincal <- cereal %>% 
+    filter(calories == min(calories)) %>% 
+    select(name) 
+mincal
+# 1 All-Bran with Extra Fiber
+# 2 Puffed Rice              
+# 3 Puffed Wheat 
+
+```
+
+# 3. Which cereal is rated the highest? Is there a relationship between rating and any of the nutritional values you explored above?
+```{r}
+
+maxrate <- cereal %>% 
+    filter(rating == max(rating)) %>% 
+    select(name) 
+maxrate
+#1 All-Bran with Extra Fiber
+
+##correlations##
+
+#make matrix 
+my_matrix <- cereal[, c("rating", "sugars", "calories", "protein", "fat")]
+
+#correlations with plots
+corr <- pairs.panels(my_matrix)
+
+#correlations with plots
+corr <- pairs.panels(my_matrix[c("rating", "sugars", "calories", "protein", "fat")])
+
+
+```
+
+#4. Which brand has the highest average rating? Is there a significant difference between average ratings across brands?
+```{r}
+
+maxrate <- cereal %>% 
+    filter(rating == max(rating)) %>% 
+    select(brand) 
+maxrate
+
+#linear model examining diff between avg ratings across brands
+
+#first quickly examine this var
+table(cereal$brand)
+#American home food products only has 1 so I'm removing it
+cereal <- cereal %>% 
+  filter(brand == 'American Home Foood Products') %>% 
+  remove()
+cereal[cereal$brand == 'American Home Foood Products'] <- NA
+
+
+#trying some loops and functions that we learned 
+
+#identify unique brands and make a list to call in results
+uniq_brands <- unique(cereal$brand)
+models_floop <- as.list(rep(NA, length(uniq_brands)))
+
+for (i in 1:(length(uniq_brands))) {
+  
+  temp <- cereal %>% 
+    filter(brand == uniq_brands[i])
+  
+  models_floop[i] <- lm(cereal$rating ~ 1 + cereal$sugars, data = temp)
+}
+
+#function method
+brand <- cereal %>% 
+  split(.$brand)
+
+foo <- function(x){
+  lm(rating ~ 1 + sugars, data =x) %>% 
+    return()
+}
+
+models <- lapply(brand,foo)
+
+```
+
